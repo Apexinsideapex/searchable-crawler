@@ -41,3 +41,9 @@
 
 ## Out of scope
 Fancy statistical models; per-IP realism beyond a small pool of hashed fake IPs per platform.
+
+## Real-data source (do once `ingest` from Phase 2 is deployed)
+Alongside seeded + simulated data, the user owns a **separate, already-hosted Next.js site with real traffic** — `../TakeHome` (frontend at `TakeHome/frontend`, App Router `src/app`, Next 16.1.6, `output: "standalone"` Docker deploy, **no auth/middleware currently**). Install our server-side tracker there so genuine GPTBot/ClaudeBot hits accumulate in the background while Phases 4–6 are built — the demo's credibility layer next to the seeded story arc.
+- [ ] Create a dedicated `sites` row for the TakeHome domain → get its `site_id`.
+- [ ] Add `src/middleware.ts` to `TakeHome/frontend` calling `trackAiCrawlers(req, { siteId, endpoint: 'https://onecvommgdocankabufy.supabase.co/functions/v1/ingest' })`, then `return NextResponse.next()`. Fire-and-forget, never `await`. (No existing middleware there, so it's a clean add.)
+- [ ] Verify with a spoofed-UA curl to the deployed ingest first (proves wiring without waiting), then let real crawler hits accumulate over days.
