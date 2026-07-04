@@ -29,7 +29,10 @@ const MAX_URL_LEN = 2048;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const IP_HASH_SALT = Deno.env.get("IP_HASH_SALT") ?? "";
+const IP_HASH_SALT = Deno.env.get("IP_HASH_SALT")!;
+if (!IP_HASH_SALT) {
+  throw new Error("IP_HASH_SALT is not set — refusing to hash IPs unsalted");
+}
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
