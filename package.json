@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run check:shared && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "sync:shared": "tsx scripts/sync-shared.ts --write",
+    "check:shared": "tsx scripts/sync-shared.ts --check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -26,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5",
     "vitest": "^4.1.9",
     "ws": "^8.21.0"
