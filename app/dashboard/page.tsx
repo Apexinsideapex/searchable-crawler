@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ChevronRight, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { logout } from "../login/actions";
+import { TopBar } from "@/components/dashboard/TopBar";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -12,23 +15,43 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const { data: sites } = await supabase
+    .from("sites")
+    .select("id, domain")
+    .order("created_at", { ascending: true });
+
+  if (sites && sites.length === 1) {
+    redirect(`/dashboard/${sites[0].id}`);
+  }
+
   return (
-    <div className="flex flex-1 flex-col gap-6 p-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-full border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
-          >
-            Log out
-          </button>
-        </form>
-      </header>
-      <p className="text-zinc-600 dark:text-zinc-400">
-        Signed in as {user.email}. Sites and crawler data land here in later
-        phases.
-      </p>
+    <div className="flex flex-1 flex-col">
+      <TopBar title="Your sites" />
+      <div className="flex flex-1 flex-col gap-4 p-6">
+        {sites && sites.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sites.map((site) => (
+              <Link key={site.id} href={`/dashboard/${site.id}`}>
+                <Card className="transition-colors hover:bg-muted/50">
+                  <CardContent className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Globe className="size-4" />
+                    </span>
+                    <span className="flex-1 truncate font-medium">
+                      {site.domain}
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No sites yet. Sites and crawler data land here in later phases.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
