@@ -66,28 +66,11 @@ describe("trackAiCrawlers", () => {
     }
   });
 
-  it("is genuinely fire-and-forget: returns before the fetch promise settles", async () => {
-    let resolveFetch!: (value: Response) => void;
-    fetchMock.mockImplementation(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        }),
-    );
-
-    const order: string[] = [];
+  it("returns synchronously (undefined, not a Promise) so callers can't await it", () => {
+    fetchMock.mockImplementation(() => new Promise<Response>(() => {})); // never settles
     const req = makeRequest("GPTBot/1.0");
-
     const result = trackAiCrawlers(req, CFG);
-    order.push("after-call");
-    expect(result).toBeUndefined(); // not a Promise — nothing to await
-
-    // The fetch hasn't resolved yet, proving trackAiCrawlers didn't await it.
-    resolveFetch(new Response(null, { status: 204 }));
-    await Promise.resolve();
-    order.push("after-fetch-resolved");
-
-    expect(order).toEqual(["after-call", "after-fetch-resolved"]);
+    expect(result).toBeUndefined();
   });
 
   it("swallows fetch rejections instead of throwing or producing an unhandled rejection", async () => {

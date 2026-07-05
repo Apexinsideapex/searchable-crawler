@@ -30,5 +30,7 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
+  // supabase/functions runs on Deno and uses "npm:" import specifiers,
+  // which break Next's tsc-based type-check (see commit 7494df0).
   "exclude": ["node_modules", "supabase/functions"]
 }
