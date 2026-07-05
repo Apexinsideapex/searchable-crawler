@@ -46,3 +46,46 @@ path that catches those.
 Ingest endpoint (hardcoded as a single `const` at the top of
 `tracker.js` for easy change later):
 `https://onecvommgdocankabufy.supabase.co/functions/v1/ingest`
+
+## Middleware tracker (`shared/track-crawlers.ts`)
+
+Server-side capture that catches real crawlers (GPTBot, ClaudeBot,
+PerplexityBot, etc.) directly on the request path — most of them never
+execute JavaScript, so the pixel above never sees them. Copy this file into
+your own Next.js project and call it from your `middleware.ts` (or `proxy.ts`
+on Next.js 16+, which renamed the file):
+
+```ts
+import { NextResponse } from "next/server";
+import { trackAiCrawlers } from "./shared/track-crawlers";
+
+export function middleware(req: Request) {
+  trackAiCrawlers(req, {
+    siteId: "SITE_ID", // UUID of your `sites` row, shown in onboarding
+    endpoint: "https://onecvommgdocankabufy.supabase.co/functions/v1/ingest",
+  });
+  return NextResponse.next();
+}
+```
+
+### How it works
+- A cheap regex (`/bot|crawl|spider|scrape|GPTBot|Claude|Perplexity|OAI/i`)
+  pre-filters the `User-Agent` header before doing any network work — the
+  overwhelming majority of requests are human traffic and never reach the
+  `fetch` call. The regex deliberately over-matches; the ingest Edge
+  Function does the authoritative classification (`shared/bot-registry.ts`)
+  and silently drops anything that isn't a recognized crawler, so a false
+  positive here only costs one wasted request, never a bad database row.
+- Sends a JSON **POST** (`site_id`, `page_url`, `user_agent`, `method`,
+  `source: "server"`) — unlike the pixel, this runs entirely server-side, so
+  there's no `navigator.userAgent` to read; the request's own `User-Agent`
+  header is forwarded as-is.
+- **Fire-and-forget by contract**: `trackAiCrawlers` never awaits the
+  `fetch` and swallows any rejection with `.catch(() => {})`. Callers must
+  never `await` it either — the whole point is that crawler tracking can
+  never add latency to (or break) a customer's real request/response cycle,
+  even during an ingest-endpoint outage.
+
+**Dogfooding:** this app installs `trackAiCrawlers` in its own `proxy.ts`,
+pointed at a `sites` row for `searchable-crawler.vercel.app` — the app
+tracks AI crawlers hitting itself.
