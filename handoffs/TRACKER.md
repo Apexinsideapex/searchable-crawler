@@ -9,8 +9,8 @@ This file is the iteration/handoff log. Update it at the end of every session/ph
 |---|-------|--------|-------|
 | 1 | Foundation + deploy skeleton | ✅ done | Deployed: https://searchable-crawler.vercel.app |
 | 2 | Ingestion pipeline | ✅ done | Tasks 2.1–2.4 complete: bot-registry, ingest Edge Function, pixel, middleware tracker (dogfooded in `proxy.ts`) |
-| 3 | Demo-data engine | ⬜ not started | |
-| 4 | Dashboard MVP | ⬜ not started | |
+| 3 | Demo-data engine | ✅ done | Seeder + live simulator complete (see below). Real-data TakeHome install still outstanding. |
+| 4 | Dashboard MVP | ⬜ not started | Being implemented in parallel in another agent/worktree |
 | 5 | Intelligence layer | ⬜ not started | |
 | 6 | Polish and demo | ⬜ not started | |
 
@@ -56,6 +56,16 @@ This file is the iteration/handoff log. Update it at the end of every session/ph
 - Ran the full `02-ingestion-pipeline.md` acceptance checklist directly against the live deployed `ingest` function using a throwaway `sites` row (created and cleaned up via the service-role REST API): GPTBot POST → `OpenAI/training`; `ChatGPT-User` POST → `OpenAI/conversations` (proves specific-before-generic ordering); plain Chrome UA POST → 204 with no row inserted; unknown UA containing "crawler" → `Unknown bot/unknown`; invalid `site_id` → 404 no row; GET pixel beacon (ClaudeBot) → row with `source: pixel`. All 6 scenarios passed.
 - `npm run check:shared` — synced copy matches. `npx vitest run` — 38/38 passing across all 3 test files. `npm run build` — clean.
 - **Phase 2 is complete.** All four tasks (2.1–2.4) implemented, spec-reviewed, and code-quality-reviewed via subagent-driven development; acceptance checklist fully green against the live deployment.
+
+### 2026-07-05 — Phase 3 (demo-data engine) completed
+- Worked in an isolated git worktree (`.claude/worktrees/phase-3-demo-data-engine`, branch `worktree-phase-3-demo-data-engine`) to avoid clobbering the Phase 4 agent working in parallel on the same files (`package.json`, potential future migrations).
+- Created a dedicated **demo site** for all seeded/simulated data: `sites.id = e78719b0-1228-4227-a601-a9a42545ffad`, `domain = demo.aicrawler-analytics.example` (deliberate RFC 2606 reserved `.example` TLD — never resolves, and visually distinct from the real dogfood site `searchable-crawler.vercel.app`). This keeps all dummy demo data trivially identifiable and never mixed with the app's own real crawler traffic.
+- Added missing `FULL_UA_SAMPLES` entries (`FacebookBot`, `DeepSeekBot`) to `shared/bot-registry.ts` needed for the platform mix / story arc (`7e83bca`).
+- `scripts/seed.ts` + `scripts/seed-helpers.ts` (`a4f18be`): deterministic (mulberry32, fixed seed) 30-day historical seeder, direct-to-Postgres via service-role client. `npm run seed` / `npm run seed:reset`. Verified live against Supabase: 10,011 events; ClaudeBot volume doubles day-1→day-30 (20→40); DeepSeekBot first-seen only in the last 3 days (40 events); `/docs/old-api` 404s on literally every hit (141 rows, all `source=server`, all `status_code=404`); CCBot bursts on exactly 2 days (300/350) and silent otherwise; Bytespider spikes 5x on day 25 (12→60); category balance ≈58/28/11/3 (training/indexing/conversations/unknown, close to the ≈55/30/12/3 target); reran `seed:reset` twice and confirmed byte-identical aggregate counts (determinism).
+- `scripts/simulate.ts` (`d124b87`): live simulator firing real HTTP POSTs at the deployed `ingest` Edge Function (not a direct DB write) at `--rate` events/sec (default 2) until Ctrl-C, for the live-demo "feed moves on screen" moment. `npm run simulate -- --site <id> --rate <n>`. Verified live: ran for ~6s, 17 events sent and landed in `crawler_events` with `source=simulator` and correct server-side classification (`ClaudeBot/Anthropic/training`, `PerplexityBot/Perplexity/indexing`, etc.) — proves the real ingestion pipeline end-to-end, not a shortcut.
+- `npm run build`, `npx vitest run` (46/46), `npx eslint` all clean throughout.
+- **Not done yet** (parked, see below): installing the middleware tracker on the user's separate real `../TakeHome` site. This is optional/orthogonal to the two core Phase 3 deliverables and touches a different external repo, so it was left for a deliberate follow-up decision rather than done opportunistically.
+- Work is committed on `worktree-phase-3-demo-data-engine` in the worktree, not yet merged/pushed to `main` — do that once Phase 4's parallel work is ready to reconcile, to avoid mid-flight `package.json` conflicts.
 
 ## Parked: real-data source for the demo (do the MOMENT Phase 2's ingest deploys) — see `03-demo-data-engine.md`
 User owns a **separate, already-hosted Next.js site** with real traffic: `../TakeHome` (frontend at `TakeHome/frontend`, App Router `src/app`, Next 16.1.6, `output: "standalone"` → Docker/Fly/Cloud Run deploy, **no auth/middleware currently** — clean add). Installing our server-side tracker there gives us **genuinely real** GPTBot/ClaudeBot/etc. events accumulating in the background while Phases 3–6 are built — the credibility layer alongside the seeded arc.
