@@ -39,7 +39,19 @@ export function trackAiCrawlers(
   cfg: { siteId: string; endpoint: string },
 ): void {
   const ua = req.headers.get("user-agent") ?? "";
-  if (!/bot|crawl|spider|scrape|GPTBot|Claude|Perplexity|OAI/i.test(ua)) {
+  // Covers every current shared/bot-registry.ts entry, including the
+  // "-User"/"Other"/"Agent" conversational and indexing variants that don't
+  // contain "bot"/"crawl"/"spider"/"scrape" (e.g. ChatGPT-User, GoogleOther,
+  // Google-Agent, MistralAI-User, Meta-ExternalFetcher/Agent). Keep in sync
+  // with shared/bot-registry.ts's BOT_REGISTRY platform tokens when new
+  // platforms are added — this file is intentionally dependency-free (safe
+  // to copy-paste into a customer's own project) so it can't just import
+  // the registry directly.
+  if (
+    !/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\.com|cohere|ai2/i.test(
+      ua,
+    )
+  ) {
     return; // cheap pre-filter — not worth a network round trip
   }
 

@@ -66,6 +66,24 @@ describe("trackAiCrawlers", () => {
     }
   });
 
+  it("matches every current shared/bot-registry.ts platform, including non-'bot' conversational/agent variants", () => {
+    // Regression test: these UAs don't contain "bot"/"crawl"/"spider"/"scrape"
+    // and were previously silently dropped by the pre-filter, so ChatGPT-User
+    // and GoogleOther traffic never reached the ingest endpoint at all.
+    const uas = [
+      "Mozilla/5.0 (compatible; ChatGPT-User/1.0; +https://openai.com/bot)",
+      "Mozilla/5.0 (compatible; GoogleOther)",
+      "Mozilla/5.0 (compatible; MistralAI-User/1.0)",
+      "Mozilla/5.0 (compatible; Meta-ExternalFetcher/1.0)",
+      "Mozilla/5.0 (compatible; Google-Agent/1.0)",
+    ];
+    for (const ua of uas) {
+      fetchMock.mockClear();
+      trackAiCrawlers(makeRequest(ua), CFG);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    }
+  });
+
   it("returns synchronously (undefined, not a Promise) so callers can't await it", () => {
     fetchMock.mockImplementation(() => new Promise<Response>(() => {})); // never settles
     const req = makeRequest("GPTBot/1.0");
