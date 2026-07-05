@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/client";
 import { resolveDateWindow } from "@/lib/dashboard/filters";
 import type { DashboardFilters } from "@/lib/dashboard/filters";
@@ -46,16 +47,28 @@ export function CsvExportButton({
     }
   }
 
-  return (
-    <span title={!hasEvents ? "No events in this range to export" : undefined}>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleExport}
-        disabled={!hasEvents || isExporting}
-      >
-        {isExporting ? "Exporting…" : "Export CSV"}
-      </Button>
-    </span>
+  const button = (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleExport}
+      disabled={!hasEvents || isExporting}
+    >
+      {isExporting ? "Exporting…" : "Export CSV"}
+    </Button>
   );
+
+  if (!hasEvents) {
+    // The button's disabled:pointer-events-none means hover never reaches
+    // it directly -- wrap it in a plain span so the tooltip trigger still
+    // gets pointer events.
+    return (
+      <Tooltip>
+        <TooltipTrigger render={<span />}>{button}</TooltipTrigger>
+        <TooltipContent>No events in this range to export</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return button;
 }

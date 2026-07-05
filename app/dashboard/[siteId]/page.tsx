@@ -4,6 +4,7 @@ import { parseFilters, resolveDateWindow } from "@/lib/dashboard/filters";
 import {
   fetchDistinctPlatforms,
   fetchFeedEvents,
+  fetchPlatformBreakdown,
   fetchStatsSummary,
   fetchTimeseries,
   fetchTopPages,
@@ -12,6 +13,7 @@ import { TopBar } from "@/components/dashboard/TopBar";
 import { FilterBar } from "@/components/dashboard/FilterBar";
 import { HeroStats } from "@/components/dashboard/HeroStats";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
+import { PlatformBreakdownChart } from "@/components/dashboard/PlatformBreakdownChart";
 import { PagesTable } from "@/components/dashboard/PagesTable";
 import { Feed } from "@/components/dashboard/Feed";
 import { CsvExportButton } from "@/components/dashboard/CsvExportButton";
@@ -63,31 +65,43 @@ export default async function SiteDashboardPage({
   const filters = parseFilters(toURLSearchParams(resolvedSearchParams));
   const window = resolveDateWindow(filters.range);
 
-  const [stats, timeseries, pages, feedEvents, platforms] = await Promise.all([
-    fetchStatsSummary(supabase, siteId, window),
-    fetchTimeseries(
-      supabase,
-      siteId,
-      window,
-      filters.category,
-      filters.platforms,
-    ),
-    fetchTopPages(supabase, siteId, window, filters.category, filters.platforms),
-    fetchFeedEvents(
-      supabase,
-      siteId,
-      window,
-      filters.category,
-      filters.platforms,
-    ),
-    fetchDistinctPlatforms(supabase, siteId, window),
-  ]);
+  const [stats, timeseries, pages, feedEvents, platforms, platformBreakdown] =
+    await Promise.all([
+      fetchStatsSummary(supabase, siteId, window),
+      fetchTimeseries(
+        supabase,
+        siteId,
+        window,
+        filters.category,
+        filters.platforms,
+      ),
+      fetchTopPages(supabase, siteId, window, filters.category, filters.platforms),
+      fetchFeedEvents(
+        supabase,
+        siteId,
+        window,
+        filters.category,
+        filters.platforms,
+      ),
+      fetchDistinctPlatforms(supabase, siteId, window),
+      fetchPlatformBreakdown(
+        supabase,
+        siteId,
+        window,
+        filters.category,
+        filters.platforms,
+      ),
+    ]);
 
   const isEmpty = stats.total === 0;
 
   return (
     <div className="flex flex-1 flex-col">
-      <TopBar title={site.domain} backHref="/dashboard" />
+      <TopBar
+        title={site.domain}
+        backHref="/dashboard"
+        settingsHref={`/dashboard/${siteId}/settings`}
+      />
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <FilterBar
@@ -113,9 +127,21 @@ export default async function SiteDashboardPage({
               stats={stats}
               timeseries={timeseries}
             />
-            <Card className="p-4">
-              <ActivityChart timeseries={timeseries} range={filters.range} />
-            </Card>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <Card className="p-4 lg:col-span-2">
+                <ActivityChart timeseries={timeseries} range={filters.range} />
+              </Card>
+              <Card className="p-4">
+                <h2 className="mb-2 text-sm font-medium text-muted-foreground">
+                  By platform
+                </h2>
+                {platformBreakdown.length > 0 ? (
+                  <PlatformBreakdownChart platforms={platformBreakdown} />
+                ) : (
+                  <p className="text-sm text-muted-foreground">No data in range.</p>
+                )}
+              </Card>
+            </div>
             <Tabs defaultValue="feed">
               <TabsList>
                 <TabsTrigger value="feed">Feed</TabsTrigger>

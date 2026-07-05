@@ -5,6 +5,7 @@ import {
   fetchCsvRows,
   fetchDistinctPlatforms,
   fetchFeedEvents,
+  fetchPlatformBreakdown,
   fetchStatsSummary,
   fetchTimeseries,
   fetchTopPages,
@@ -126,6 +127,13 @@ describe("dashboard query wrappers", () => {
     const window = resolveDateWindow("24h", now);
     const platforms = await fetchDistinctPlatforms(client, siteId, window);
     expect(platforms).toEqual(["OpenAI"]);
+  });
+
+  it("fetchPlatformBreakdown ranks the one seeded platform with the combined count", async () => {
+    const window = resolveDateWindow("24h", now);
+    const breakdown = await fetchPlatformBreakdown(client, siteId, window, "all", null);
+    expect(breakdown).toEqual([{ platform: "OpenAI", count: 2 }]);
+    expect(typeof breakdown[0].count).toBe("number");
   });
 
   it("fetchCsvRows applies the platform filter", async () => {

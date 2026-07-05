@@ -19,6 +19,11 @@ export interface TimeseriesPoint {
   count: number;
 }
 
+export interface PlatformCount {
+  platform: string;
+  count: number;
+}
+
 export interface TopPageRow {
   page_path: string;
   total_visits: number;
@@ -137,6 +142,28 @@ export async function fetchDistinctPlatforms(
   });
   if (error) throw error;
   return (data as Array<{ platform: string }>).map((row) => row.platform);
+}
+
+export async function fetchPlatformBreakdown(
+  supabase: SupabaseClient,
+  siteId: string,
+  window: DateWindow,
+  category: CategoryKey,
+  platforms: string[] | null,
+): Promise<PlatformCount[]> {
+  const { data, error } = await supabase.rpc("platform_breakdown", {
+    p_site_id: siteId,
+    p_from: window.from.toISOString(),
+    p_to: window.to.toISOString(),
+    p_category: categoryParam(category),
+    p_platforms: platformsParam(platforms),
+  });
+  if (error) throw error;
+
+  return (data as Array<Record<string, string | number>>).map((row) => ({
+    platform: String(row.platform),
+    count: Number(row.count),
+  }));
 }
 
 function applyEventFilters(

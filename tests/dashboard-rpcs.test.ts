@@ -388,4 +388,89 @@ describe("dashboard RPCs", () => {
       expect(data![0]).toMatchObject({ page_path: "/quiet", total_visits: 1 });
     });
   });
+
+  describe("platform_breakdown", () => {
+    const base = new Date("2024-03-01T00:00:00.000Z");
+    const from = base.toISOString();
+    const to = new Date(base.getTime() + HOUR).toISOString();
+
+    beforeAll(async () => {
+      // OpenAI: 3 events (2 training, 1 indexing), Anthropic: 2, Perplexity: 1
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 1000).toISOString(),
+        platform: "OpenAI",
+        bot_category: "training",
+      });
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 2000).toISOString(),
+        platform: "OpenAI",
+        bot_category: "training",
+      });
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 3000).toISOString(),
+        platform: "OpenAI",
+        bot_category: "indexing",
+      });
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 4000).toISOString(),
+        platform: "Anthropic",
+        bot_category: "training",
+      });
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 5000).toISOString(),
+        platform: "Anthropic",
+        bot_category: "training",
+      });
+      await insertEvent(user.siteId, {
+        occurred_at: new Date(base.getTime() + 6000).toISOString(),
+        platform: "Perplexity",
+        bot_category: "indexing",
+      });
+    });
+
+    it("ranks platforms by event count descending", async () => {
+      const { data, error } = await user.client.rpc("platform_breakdown", {
+        p_site_id: user.siteId,
+        p_from: from,
+        p_to: to,
+        p_category: null,
+        p_platforms: null,
+      });
+      expect(error).toBeNull();
+      expect(data).toMatchObject([
+        { platform: "OpenAI", count: 3 },
+        { platform: "Anthropic", count: 2 },
+        { platform: "Perplexity", count: 1 },
+      ]);
+    });
+
+    it("filters by category", async () => {
+      const { data, error } = await user.client.rpc("platform_breakdown", {
+        p_site_id: user.siteId,
+        p_from: from,
+        p_to: to,
+        p_category: "training",
+        p_platforms: null,
+      });
+      expect(error).toBeNull();
+      // both platforms tie at 2 for the training category; the RPC's
+      // tiebreak is alphabetical by platform (Anthropic < OpenAI)
+      expect(data).toMatchObject([
+        { platform: "Anthropic", count: 2 },
+        { platform: "OpenAI", count: 2 },
+      ]);
+    });
+
+    it("does not leak another user's events into the breakdown", async () => {
+      const { data, error } = await otherUser.client.rpc("platform_breakdown", {
+        p_site_id: user.siteId,
+        p_from: from,
+        p_to: to,
+        p_category: null,
+        p_platforms: null,
+      });
+      expect(error).toBeNull();
+      expect(data).toHaveLength(0);
+    });
+  });
 });

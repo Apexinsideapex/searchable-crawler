@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Globe } from "lucide-react";
+import { ChevronRight, Globe, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -45,11 +46,29 @@ export default async function DashboardPage() {
                 </Card>
               </Link>
             ))}
+            <Link href="/dashboard/new">
+              <Card className="border-dashed transition-colors hover:bg-muted/50">
+                <CardContent className="flex items-center gap-3 text-muted-foreground">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <Plus className="size-4" />
+                  </span>
+                  <span className="flex-1 font-medium">Add site</span>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No sites yet. Sites and crawler data land here in later phases.
-          </p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-muted-foreground">
+              No sites yet. Add a site to get your tracking snippet.
+            </p>
+            <Button
+              nativeButton={false}
+              render={<Link href="/dashboard/new" />}
+            >
+              Add your first site
+            </Button>
+          </div>
         )}
       </div>
     </div>
