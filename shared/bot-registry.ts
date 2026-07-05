@@ -126,6 +126,10 @@ export const FULL_UA_SAMPLES: Record<string, string> = {
     "CCBot/2.0 (https://commoncrawl.org/faq/)",
   Applebot:
     "Mozilla/5.0 (Applebot/0.1; +http://www.apple.com/go/applebot)",
+  FacebookBot:
+    "Mozilla/5.0 (compatible; FacebookBot/1.0; +https://developers.facebook.com/docs/sharing/webmasters/crawler)",
+  DeepSeekBot:
+    "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; DeepSeekBot/1.0; +https://deepseek.com/deepseekbot)",
 };
 
 /**
