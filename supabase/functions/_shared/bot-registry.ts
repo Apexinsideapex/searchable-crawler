@@ -62,6 +62,13 @@ export const BOT_REGISTRY: BotDef[] = [
   { pattern: /Google-Agent/i, name: "Google-Agent", platform: "Google", category: "agent" },
   { pattern: /GoogleOther/i, name: "GoogleOther", platform: "Google", category: "training" },
   { pattern: /Googlebot/i, name: "Googlebot", platform: "Google", category: "indexing" },
+  // Gemini's live in-chat browsing sends a bare `User-Agent: Google` (no
+  // other tokens) — confirmed via a live capture against a debug endpoint
+  // (handoffs/TRACKER.md, 2026-07-05). Anchored to the full string so this
+  // doesn't swallow any other Google UA that merely contains the word
+  // "Google" as a substring; placed after the more specific Google-* entries
+  // above since they'd never overlap with an exact-match pattern anyway.
+  { pattern: /^Google$/i, name: "Gemini", platform: "Google", category: "agent" },
 
   { pattern: /MistralAI-User/i, name: "MistralAI-User", platform: "Mistral", category: "conversations" },
 
