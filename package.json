@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "sync:shared": "tsx scripts/sync-shared.ts --write",
-    "check:shared": "tsx scripts/sync-shared.ts --check"
+    "check:shared": "tsx scripts/sync-shared.ts --check",
+    "seed": "tsx scripts/seed.ts",
+    "seed:reset": "tsx scripts/seed.ts --reset"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
