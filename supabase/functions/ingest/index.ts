@@ -140,8 +140,14 @@ async function insertEvent(params: {
   const classification = classifyBot(params.userAgent);
   if (!classification) {
     // Human traffic — not a bot, nothing to record.
+    console.log(
+      `[ingest] DROP not-a-bot | ${params.source} | ua="${params.userAgent}" | url=${params.pageUrl}`,
+    );
     return noContentResponse();
   }
+  console.log(
+    `[ingest] INSERT ${classification.name} | ${params.source} | ua="${params.userAgent}" | url=${params.pageUrl}`,
+  );
 
   const pagePath = computePagePath(params.pageUrl);
   const ipHash = await hashIp(params.ip);
@@ -175,15 +181,18 @@ async function handleGet(req: Request): Promise<Response> {
   const pageUrl = url.searchParams.get("u");
   const userAgent = req.headers.get("user-agent") ?? "";
 
+  console.log(`[ingest] GET/pixel | sid=${siteId} | ua="${userAgent}" | u=${pageUrl}`);
   if (!siteId || !pageUrl) {
     return jsonResponse({ error: "missing sid or u" }, 400);
   }
 
   const domain = await getSiteDomain(siteId);
   if (!domain) {
+    console.log(`[ingest] DROP site-not-found | sid=${siteId}`);
     return jsonResponse({ error: "site not found" }, 404);
   }
   if (!hostMatchesDomain(pageUrl, domain)) {
+    console.log(`[ingest] DROP domain_mismatch | registered=${domain} | u=${pageUrl}`);
     return jsonResponse({ error: "domain_mismatch" }, 403);
   }
 
@@ -218,15 +227,20 @@ async function handlePost(req: Request): Promise<Response> {
   }
 
   const { site_id, page_url, user_agent } = body;
+  console.log(
+    `[ingest] POST/${body.source ?? "server"} | sid=${site_id} | ua="${user_agent}" | url=${page_url}`,
+  );
   if (!site_id || !page_url || !user_agent) {
     return jsonResponse({ error: "missing site_id, page_url, or user_agent" }, 400);
   }
 
   const domain = await getSiteDomain(site_id);
   if (!domain) {
+    console.log(`[ingest] DROP site-not-found | sid=${site_id}`);
     return jsonResponse({ error: "site not found" }, 404);
   }
   if (!hostMatchesDomain(page_url, domain)) {
+    console.log(`[ingest] DROP domain_mismatch | registered=${domain} | url=${page_url}`);
     return jsonResponse({ error: "domain_mismatch" }, 403);
   }
 
