@@ -31,14 +31,31 @@ function pixelSnippet(siteId: string): string {
 }
 
 function middlewareSnippet(siteId: string, ingestUrl: string): string {
-  return `import { NextResponse } from "next/server";
-import { trackAiCrawlers } from "./shared/track-crawlers";
+  // Fully self-contained: everything lives in the customer's own
+  // middleware.ts. No import from this repo's shared/ dir (which they don't
+  // have) and no second file to create -- true copy-paste.
+  return `// middleware.ts -- place at the root of your Next.js project
+import { NextResponse } from "next/server";
+
+const SITE_ID = "${siteId}";
+const INGEST_URL = "${ingestUrl}";
 
 export function middleware(req: Request) {
-  trackAiCrawlers(req, {
-    siteId: "${siteId}",
-    endpoint: "${ingestUrl}",
-  });
+  const ua = req.headers.get("user-agent") ?? "";
+  if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\\.com|cohere|ai2/i.test(ua)) {
+    // Fire-and-forget: never awaited, so it never delays the response.
+    fetch(INGEST_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        site_id: SITE_ID,
+        page_url: req.url,
+        user_agent: ua,
+        method: req.method,
+        source: "server",
+      }),
+    }).catch(() => {});
+  }
   return NextResponse.next();
 }`;
 }
@@ -111,17 +128,21 @@ export default async function SiteSettingsPage({
               </TabsList>
               <TabsContent value="pixel" className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground">
-                  Fastest install. Catches JS-executing agents: Applebot,
-                  Gemini, and browser-based AI agents.
+                  One script tag, any framework — 30-second install. But it
+                  only catches <strong>JS-executing</strong> agents (Applebot,
+                  Gemini, browser-based AI agents). It <strong>cannot</strong>{" "}
+                  see GPTBot, ClaudeBot or PerplexityBot — install the
+                  middleware for those.
                 </p>
                 <CodeSnippet code={pixelSnippet(site.id)} />
               </TabsContent>
               <TabsContent value="middleware" className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground">
-                  GPTBot, ClaudeBot and PerplexityBot never execute
-                  JavaScript — they&apos;re invisible to browser scripts.
-                  Server-side sees every request. Install both for full
-                  coverage.
+                  Full coverage — the only way to catch GPTBot, ClaudeBot and
+                  PerplexityBot, which never execute JavaScript and are
+                  invisible to the pixel. Server-side sees every request.
+                  Next.js only; drop this one file at your project root (no
+                  extra dependencies, no build step).
                 </p>
                 <CodeSnippet code={middlewareSnippet(site.id, ingestUrl)} />
               </TabsContent>

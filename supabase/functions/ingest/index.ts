@@ -88,17 +88,43 @@ async function hashIp(ip: string): Promise<string> {
     .join("");
 }
 
-async function siteExists(siteId: string): Promise<boolean> {
+/**
+ * Looks up a site by id and returns its registered bare host (e.g.
+ * "example.com"), or null when the site doesn't exist. The domain is needed
+ * for domain-binding: we reject events whose `page_url` claims a host that
+ * isn't the customer's own site, so a leaked (inherently public) site_id
+ * can't be used to inject spoofed traffic for arbitrary pages.
+ */
+async function getSiteDomain(siteId: string): Promise<string | null> {
   const { data, error } = await supabase
     .from("sites")
-    .select("id")
+    .select("domain")
     .eq("id", siteId)
     .maybeSingle();
   if (error) {
     console.error("site lookup error", error);
-    return false;
+    return null;
   }
-  return data != null;
+  return data?.domain ?? null;
+}
+
+/**
+ * True when `pageUrl`'s host is the site's registered domain or a subdomain
+ * of it. Ports are ignored on both sides. When `pageUrl` has no parseable
+ * host (a bare path — tolerated by computePagePath for defensive callers) we
+ * can't verify origin, so we allow it: the main goal is to reject events that
+ * explicitly claim a *different* domain, not to require a full URL.
+ */
+function hostMatchesDomain(pageUrl: string, domain: string): boolean {
+  let host: string;
+  try {
+    host = new URL(pageUrl).hostname.toLowerCase();
+  } catch {
+    return true; // no host to check — best effort
+  }
+  const registered = domain.split(":")[0].replace(/^www\./, "");
+  host = host.replace(/^www\./, "");
+  return host === registered || host.endsWith(`.${registered}`);
 }
 
 async function insertEvent(params: {
@@ -153,8 +179,12 @@ async function handleGet(req: Request): Promise<Response> {
     return jsonResponse({ error: "missing sid or u" }, 400);
   }
 
-  if (!(await siteExists(siteId))) {
+  const domain = await getSiteDomain(siteId);
+  if (!domain) {
     return jsonResponse({ error: "site not found" }, 404);
+  }
+  if (!hostMatchesDomain(pageUrl, domain)) {
+    return jsonResponse({ error: "domain_mismatch" }, 403);
   }
 
   return insertEvent({
@@ -192,8 +222,12 @@ async function handlePost(req: Request): Promise<Response> {
     return jsonResponse({ error: "missing site_id, page_url, or user_agent" }, 400);
   }
 
-  if (!(await siteExists(site_id))) {
+  const domain = await getSiteDomain(site_id);
+  if (!domain) {
     return jsonResponse({ error: "site not found" }, 404);
+  }
+  if (!hostMatchesDomain(page_url, domain)) {
+    return jsonResponse({ error: "domain_mismatch" }, 403);
   }
 
   return insertEvent({
