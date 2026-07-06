@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import robotsParser from "npm:robots-parser";
-import { BOT_PATTERNS } from "../_shared/bot-registry.ts";
+import { BOT_REGISTRY } from "../_shared/bot-registry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     const results: Record<string, { allowed: boolean | undefined; isToken: boolean }> = {};
 
     // Get unique bot names from our registry
-    const uniqueBots = Array.from(new Set(BOT_PATTERNS.map((b) => b.name)));
+    const uniqueBots = Array.from(new Set(BOT_REGISTRY.map((b) => b.name)));
 
     // Test standard user agents
     for (const botName of uniqueBots) {

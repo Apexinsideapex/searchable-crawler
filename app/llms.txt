@@ -1,0 +1,7 @@
+# AI Crawler Analytics
+
+This site provides data and insights on how AI bots interact with web properties.
+
+## Primary Documentation
+- [Home](/)
+- [Demo Dashboard](/dashboard)

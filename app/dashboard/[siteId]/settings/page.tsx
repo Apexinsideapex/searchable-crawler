@@ -8,6 +8,7 @@ import { CodeSnippet } from "@/components/dashboard/CodeSnippet";
 import { SendTestCrawlButton } from "@/components/dashboard/SendTestCrawlButton";
 import { CsvExportButton } from "@/components/dashboard/CsvExportButton";
 import { DeleteSiteForm } from "@/components/dashboard/DeleteSiteForm";
+import { AccessCheck } from "@/components/dashboard/AccessCheck";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tabs,
@@ -93,6 +94,8 @@ export default async function SiteSettingsPage({
             </Link>
           </CardContent>
         </Card>
+
+        <AccessCheck siteId={siteId} />
 
         <Card>
           <CardHeader>
