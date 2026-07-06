@@ -45,6 +45,13 @@ const INGEST_URL = "${ingestUrl}";
 export function middleware(req: NextRequest, event: NextFetchEvent) {
   const ua = req.headers.get("user-agent") ?? "";
   if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\\.com|cohere|ai2/i.test(ua)) {
+    // Build the URL from the public host header -- req.url reports the
+    // internal bind address (e.g. 0.0.0.0:8080 / localhost) when self-hosted
+    // (Cloud Run, Docker, etc.), which would break domain matching.
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
+    const pageUrl = host
+      ? \`https://\${host}\${req.nextUrl.pathname}\${req.nextUrl.search}\`
+      : req.url;
     // waitUntil keeps the serverless invocation alive until the report
     // finishes, without delaying the response. A bare fire-and-forget
     // fetch can be dropped once the response returns. Errors swallowed.
@@ -54,7 +61,7 @@ export function middleware(req: NextRequest, event: NextFetchEvent) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           site_id: SITE_ID,
-          page_url: req.url,
+          page_url: pageUrl,
           user_agent: ua,
           method: req.method,
           source: "server",
