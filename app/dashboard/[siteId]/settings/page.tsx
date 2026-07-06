@@ -5,6 +5,7 @@ import { resolveDateWindow } from "@/lib/dashboard/filters";
 import { fetchStatsSummary } from "@/lib/dashboard/queries";
 import { TopBar } from "@/components/dashboard/TopBar";
 import { CodeSnippet } from "@/components/dashboard/CodeSnippet";
+import { CopyAgentPromptButton } from "@/components/dashboard/CopyAgentPromptButton";
 import { SendTestCrawlButton } from "@/components/dashboard/SendTestCrawlButton";
 import { CsvExportButton } from "@/components/dashboard/CsvExportButton";
 import { DeleteSiteForm } from "@/components/dashboard/DeleteSiteForm";
@@ -36,28 +37,71 @@ function middlewareSnippet(siteId: string, ingestUrl: string): string {
   // have) and no second file to create -- true copy-paste.
   return `// middleware.ts -- place at the root of your Next.js project
 import { NextResponse } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 
 const SITE_ID = "${siteId}";
 const INGEST_URL = "${ingestUrl}";
 
-export function middleware(req: Request) {
+export function middleware(req: NextRequest, event: NextFetchEvent) {
   const ua = req.headers.get("user-agent") ?? "";
   if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\\.com|cohere|ai2/i.test(ua)) {
-    // Fire-and-forget: never awaited, so it never delays the response.
-    fetch(INGEST_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        site_id: SITE_ID,
-        page_url: req.url,
-        user_agent: ua,
-        method: req.method,
-        source: "server",
-      }),
-    }).catch(() => {});
+    // waitUntil keeps the serverless invocation alive until the report
+    // finishes, without delaying the response. A bare fire-and-forget
+    // fetch can be dropped once the response returns. Errors swallowed.
+    event.waitUntil(
+      fetch(INGEST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          site_id: SITE_ID,
+          page_url: req.url,
+          user_agent: ua,
+          method: req.method,
+          source: "server",
+        }),
+      }).catch(() => {}),
+    );
   }
   return NextResponse.next();
-}`;
+}
+
+// If you already have a config.matcher, merge these excludes into it
+// rather than adding a second config export.
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:css|js|png|jpg|svg)).*)"],
+};`;
+}
+
+/** Handoff prompt so the user can paste the pixel install to their AI agent. */
+function pixelAgentPrompt(siteId: string): string {
+  return `Add AI-crawler analytics tracking to this website.
+
+Load this exact script tag on every page, in the global <head> (e.g. app/layout.tsx, pages/_document, index.html, or the framework's head/script mechanism — for Next.js prefer next/script):
+
+${pixelSnippet(siteId)}
+
+Rules:
+- Do NOT change the src or data-site values.
+- It must load site-wide, not on a single page.
+- If this is a React/Next app, use the framework's head/script API rather than raw HTML.
+
+When done, tell me one way to verify it's firing.`;
+}
+
+/** Handoff prompt so the user can paste the middleware install to their AI agent. */
+function middlewareAgentPrompt(siteId: string, ingestUrl: string): string {
+  return `Add server-side AI-crawler analytics tracking to this Next.js app.
+
+Create a file named middleware.ts at the project root (next to package.json, or inside src/ if the project uses a src directory) with exactly this content:
+
+${middlewareSnippet(siteId, ingestUrl)}
+
+Rules:
+- Do NOT change SITE_ID or INGEST_URL.
+- If a middleware.ts already exists, do NOT overwrite it. Instead merge this in: run the bot-detection + event.waitUntil(fetch(...)) block inside the existing middleware function before it returns, and merge the config.matcher excludes into the existing matcher rather than adding a second config export. Preserve all existing middleware behavior.
+- The fetch must stay inside event.waitUntil and must never be awaited, so it never delays the response.
+
+When done, tell me one way to verify it's firing.`;
 }
 
 export default async function SiteSettingsPage({
@@ -135,6 +179,7 @@ export default async function SiteSettingsPage({
                   middleware for those.
                 </p>
                 <CodeSnippet code={pixelSnippet(site.id)} />
+                <CopyAgentPromptButton prompt={pixelAgentPrompt(site.id)} />
               </TabsContent>
               <TabsContent value="middleware" className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground">
@@ -145,6 +190,9 @@ export default async function SiteSettingsPage({
                   extra dependencies, no build step).
                 </p>
                 <CodeSnippet code={middlewareSnippet(site.id, ingestUrl)} />
+                <CopyAgentPromptButton
+                  prompt={middlewareAgentPrompt(site.id, ingestUrl)}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>
