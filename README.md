@@ -138,14 +138,17 @@ middleware never fires, and those crawler visits go untracked.**
 - **Self-hosted (Cloud Run, Docker behind a CDN, etc.)** the cache sits in
   front of the container, so cached pages bypass the middleware entirely.
 
-Fix: make the HTML routes you want tracked reach the origin. Add a
-`headers()` rule in `next.config.ts` setting `Cache-Control: no-store` on
-document routes (exclude `_next/static`, `_next/image`, and files with
-extensions so assets stay cached), or `export const dynamic = "force-dynamic"`
-on those routes. The page still renders from its prerender; you only give up
-CDN edge-caching of the HTML. For coverage on pages you keep cached, add the
-pixel too — it runs client-side on every load (but only sees JS-executing
-agents).
+Fix: make the HTML routes you want tracked render per-request so they reach
+the origin. Use **route segment config**, not a `next.config` `headers()`
+rule — Next.js overwrites `Cache-Control` for pages, so a headers() rule has
+no effect. In the App Router add `export const dynamic = "force-dynamic"` to
+the root `layout.tsx` (covers the whole app) and/or the specific pages you
+want tracked; on the Pages Router, opt the page out of static generation
+(e.g. `getServerSideProps`). Dynamic routes are sent with
+`Cache-Control: no-store`, so the CDN won't cache them and every request hits
+the origin. You give up static/CDN caching of those HTML routes. For pages you
+keep cached, add the pixel too — it runs client-side on every load (but only
+sees JS-executing agents).
 
 ### Internal helper (`shared/track-crawlers.ts`)
 

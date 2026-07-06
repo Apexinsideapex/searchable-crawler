@@ -107,9 +107,9 @@ Rules:
 - Do NOT change SITE_ID or INGEST_URL.
 - If a middleware.ts already exists, do NOT overwrite it. Instead merge this in: run the bot-detection + event.waitUntil(fetch(...)) block inside the existing middleware function before it returns, and merge the config.matcher excludes into the existing matcher rather than adding a second config export. Preserve all existing middleware behavior.
 - The fetch must stay inside event.waitUntil and must never be awaited, so it never delays the response.
-- IMPORTANT (CDN caching): middleware only runs when a request reaches the origin. Statically generated pages are served from a CDN/full-route cache (default Cache-Control s-maxage), so crawlers on cached pages never trigger the middleware. To fix, make HTML document routes reach the origin: add a headers() rule to next.config that sets "Cache-Control: no-store" on document routes (exclude _next/static, _next/image, and files with extensions), OR add "export const dynamic = 'force-dynamic'" to the routes you want tracked. Keep static assets cached. Merge into any existing headers()/next.config rather than replacing it.
+- IMPORTANT (CDN caching): middleware only runs when a request reaches the origin. Statically generated pages are served from a CDN/full-route cache (default Cache-Control s-maxage), so crawlers on cached pages never trigger the middleware. Do NOT try to fix this with a next.config headers() Cache-Control rule — Next.js overwrites Cache-Control for pages, so it has no effect. The correct fix is route segment config: add "export const dynamic = 'force-dynamic'" (App Router) — in the root layout to cover the whole app, and/or on the specific page files you want tracked. On Pages Router, use getServerSideProps / an equivalent that opts the page out of static generation. This makes pages render per-request so every request reaches the origin and the middleware runs.
 
-When done, tell me one way to verify it's firing (and confirm a request to a page — not a static asset — reaches the origin).`;
+When done, tell me one way to verify it's firing (and confirm a request to a cached-looking page now shows Cache-Control: no-store / private instead of a long s-maxage).`;
 }
 
 export default async function SiteSettingsPage({
@@ -201,12 +201,16 @@ export default async function SiteSettingsPage({
                   when a request reaches your origin. Statically generated
                   pages served from a CDN/edge cache (common on self-hosted
                   Next.js — Cloud Run, etc.) bypass it, so crawlers on cached
-                  pages go untracked. If your pages are cached, set{" "}
-                  <code className="text-xs">Cache-Control: no-store</code> on
-                  HTML routes (or <code className="text-xs">force-dynamic</code>)
-                  so they hit the origin — the &ldquo;Copy prompt&rdquo; button
-                  tells your agent to do this. Add the pixel too for
-                  JS-executing agents on cached pages.
+                  pages go untracked. (On Vercel, middleware runs at the edge
+                  before the cache, so this doesn&apos;t happen.) If your pages
+                  are cached, add{" "}
+                  <code className="text-xs">
+                    export const dynamic = &quot;force-dynamic&quot;
+                  </code>{" "}
+                  to the root layout (or the pages you want tracked) so they hit
+                  the origin — the &ldquo;Copy prompt&rdquo; button tells your
+                  agent to do this. Add the pixel too for JS-executing agents on
+                  cached pages.
                 </p>
                 <CodeSnippet code={middlewareSnippet(site.id, ingestUrl)} />
                 <CopyAgentPromptButton
