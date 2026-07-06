@@ -125,6 +125,28 @@ export const config = {
   dropped once the response returns on Vercel Edge / Cloudflare / Cloud Run,
   so `waitUntil` is what makes delivery reliable without adding latency.
 
+### Caveat: CDN / route caching (important on self-hosted Next.js)
+
+Middleware only runs when a request actually reaches your origin. A
+statically generated page is served with a long `Cache-Control` (`s-maxage`)
+and cached by the CDN/edge in front of your app, so repeat requests to the
+same URL are answered from cache and **never reach the container — the
+middleware never fires, and those crawler visits go untracked.**
+
+- **On Vercel** middleware runs at the edge *before* the cache, so it fires
+  regardless. This is why the snippet "just works" there.
+- **Self-hosted (Cloud Run, Docker behind a CDN, etc.)** the cache sits in
+  front of the container, so cached pages bypass the middleware entirely.
+
+Fix: make the HTML routes you want tracked reach the origin. Add a
+`headers()` rule in `next.config.ts` setting `Cache-Control: no-store` on
+document routes (exclude `_next/static`, `_next/image`, and files with
+extensions so assets stay cached), or `export const dynamic = "force-dynamic"`
+on those routes. The page still renders from its prerender; you only give up
+CDN edge-caching of the HTML. For coverage on pages you keep cached, add the
+pixel too — it runs client-side on every load (but only sees JS-executing
+agents).
+
 ### Internal helper (`shared/track-crawlers.ts`)
 
 The same logic also lives as a dependency-free helper, `trackAiCrawlers`,

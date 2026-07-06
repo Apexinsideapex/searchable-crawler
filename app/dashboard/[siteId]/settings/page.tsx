@@ -107,8 +107,9 @@ Rules:
 - Do NOT change SITE_ID or INGEST_URL.
 - If a middleware.ts already exists, do NOT overwrite it. Instead merge this in: run the bot-detection + event.waitUntil(fetch(...)) block inside the existing middleware function before it returns, and merge the config.matcher excludes into the existing matcher rather than adding a second config export. Preserve all existing middleware behavior.
 - The fetch must stay inside event.waitUntil and must never be awaited, so it never delays the response.
+- IMPORTANT (CDN caching): middleware only runs when a request reaches the origin. Statically generated pages are served from a CDN/full-route cache (default Cache-Control s-maxage), so crawlers on cached pages never trigger the middleware. To fix, make HTML document routes reach the origin: add a headers() rule to next.config that sets "Cache-Control: no-store" on document routes (exclude _next/static, _next/image, and files with extensions), OR add "export const dynamic = 'force-dynamic'" to the routes you want tracked. Keep static assets cached. Merge into any existing headers()/next.config rather than replacing it.
 
-When done, tell me one way to verify it's firing.`;
+When done, tell me one way to verify it's firing (and confirm a request to a page — not a static asset — reaches the origin).`;
 }
 
 export default async function SiteSettingsPage({
@@ -190,11 +191,22 @@ export default async function SiteSettingsPage({
               </TabsContent>
               <TabsContent value="middleware" className="flex flex-col gap-2">
                 <p className="text-sm text-muted-foreground">
-                  Full coverage — the only way to catch GPTBot, ClaudeBot and
-                  PerplexityBot, which never execute JavaScript and are
-                  invisible to the pixel. Server-side sees every request.
-                  Next.js only; drop this one file at your project root (no
-                  extra dependencies, no build step).
+                  The only way to catch GPTBot, ClaudeBot and PerplexityBot,
+                  which never execute JavaScript and are invisible to the
+                  pixel. Next.js only; drop this one file at your project root
+                  (no extra dependencies, no build step).
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  <strong>Heads up on caching:</strong> middleware only runs
+                  when a request reaches your origin. Statically generated
+                  pages served from a CDN/edge cache (common on self-hosted
+                  Next.js — Cloud Run, etc.) bypass it, so crawlers on cached
+                  pages go untracked. If your pages are cached, set{" "}
+                  <code className="text-xs">Cache-Control: no-store</code> on
+                  HTML routes (or <code className="text-xs">force-dynamic</code>)
+                  so they hit the origin — the &ldquo;Copy prompt&rdquo; button
+                  tells your agent to do this. Add the pixel too for
+                  JS-executing agents on cached pages.
                 </p>
                 <CodeSnippet code={middlewareSnippet(site.id, ingestUrl)} />
                 <CopyAgentPromptButton
