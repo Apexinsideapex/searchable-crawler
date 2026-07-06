@@ -18,6 +18,7 @@ import { PagesTable } from "@/components/dashboard/PagesTable";
 import { Feed } from "@/components/dashboard/Feed";
 import { CsvExportButton } from "@/components/dashboard/CsvExportButton";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { IntelligenceBrief } from "@/components/dashboard/IntelligenceBrief";
 import { Card } from "@/components/ui/card";
 import {
   Tabs,
@@ -121,6 +122,7 @@ export default async function SiteDashboardPage({
           <EmptyState />
         ) : (
           <>
+            <IntelligenceBrief siteId={siteId} />
             <HeroStats
               siteId={siteId}
               filters={filters}

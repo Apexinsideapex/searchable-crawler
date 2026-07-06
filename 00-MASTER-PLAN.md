@@ -41,11 +41,11 @@ Simulator script ──(POST)───────────┼──▶ Supab
                                               ▼
                                     Supabase Postgres (RLS)
                                      │            │
-                          Realtime channel   SQL aggregates
+                                     │       SQL aggregates
                                      ▼            ▼
                               Next.js dashboard on Vercel
                                      ▲
-                    Edge Function `insights` (LLM brief, 4h cache, rule fallback)
+                    Edge Function `insights` (Gemini brief, 4h cache, rule fallback)
                     Edge Function `access-check` (robots.txt / llms.txt parse)
 ```
 
@@ -53,7 +53,7 @@ Simulator script ──(POST)───────────┼──▶ Supab
 - **Single source of truth for bot detection**: `shared/bot-registry.ts` (pure data + pure `classifyBot()` fn, no runtime deps) imported by the Edge Function (Deno), middleware (Node/Edge), and seeder. A `scripts/sync-shared.ts` copy step keeps `supabase/functions/_shared/` in sync; CI-style check fails the build on drift.
 - **Ingest is service-role, not anon-insert**: Edge Function validates the site exists, then inserts with service role. No public INSERT policy on `crawler_events`. Dashboard reads via RLS.
 - **Charts**: Recharts. **CSV**: client-side generation from a filtered query (streaming/export API is out of scope).
-- **LLM**: Anthropic API via Supabase secret; strict-JSON output; deterministic fallback so the brief is never empty.
+- **LLM**: Gemini API (`gemini-3.1-pro-preview`) via Supabase secret; strict-JSON output; deterministic fallback so the brief is never empty.
 
 ## 5. The demo script (build toward this from hour one)
 
