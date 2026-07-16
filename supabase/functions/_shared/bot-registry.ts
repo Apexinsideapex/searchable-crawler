@@ -109,6 +109,24 @@ export const BOT_REGISTRY: BotDef[] = [
 const GENERIC_BOT_PATTERN = /bot|crawl|spider|scrape/i;
 
 /**
+ * AI-vendor tokens mirroring the middleware pre-filter regex (see
+ * shared/track-crawlers.ts / the Settings middleware snippet). A UA carrying
+ * one of these tokens but matching no registry entry is almost certainly a
+ * new or renamed AI fetcher (vendors keep shipping "-User"/"-Agent"/
+ * "DeepSearch"-style names without "bot" in them) — surface it as
+ * "Unknown bot" so it shows up in the dashboard and can be added to the
+ * registry, instead of being silently dropped as human traffic.
+ *
+ * Deliberate differences from the middleware regex:
+ * - "meta-" is hyphenated: bare "meta" appears in human UAs (Meta Quest
+ *   browsers), and this pattern also classifies pixel traffic where every
+ *   human browser UA flows through.
+ * - "xai" is included for future xAI fetcher names beyond Grok.
+ */
+const AI_TOKEN_PATTERN =
+  /chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta-|facebook|mistral|deepseek|grok|xai|duckassist|you\.com|cohere|ai2/i;
+
+/**
  * Real-world, full User-Agent strings keyed by bot name. Used by the
  * demo-data seeder/simulator to generate plausible traffic.
  */
@@ -158,7 +176,8 @@ export const FULL_UA_SAMPLES: Record<string, string> = {
  * - Registry entries are checked in order (most-specific-first); the first
  *   match wins.
  * - UAs that don't match a specific entry but look like a crawler (matching
- *   /bot|crawl|spider|scrape/i) fall back to a generic "Unknown bot" result.
+ *   /bot|crawl|spider|scrape/i) or carry an AI-vendor token (AI_TOKEN_PATTERN)
+ *   fall back to a generic "Unknown bot" result.
  * - Anything else (human/browser traffic) returns `null`.
  */
 export function classifyBot(
@@ -172,7 +191,7 @@ export function classifyBot(
     }
   }
 
-  if (GENERIC_BOT_PATTERN.test(ua)) {
+  if (GENERIC_BOT_PATTERN.test(ua) || AI_TOKEN_PATTERN.test(ua)) {
     return { name: "Unknown bot", platform: "Unknown", category: "unknown" };
   }
 
