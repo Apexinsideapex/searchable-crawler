@@ -48,7 +48,7 @@ export function trackAiCrawlers(
   // to copy-paste into a customer's own project) so it can't just import
   // the registry directly.
   if (
-    !/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\.com|cohere|ai2/i.test(
+    !/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|xai|duckassist|you\.com|cohere|ai2/i.test(
       ua,
     )
   ) {

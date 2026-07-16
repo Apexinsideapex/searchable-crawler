@@ -44,7 +44,7 @@ const INGEST_URL = "${ingestUrl}";
 
 export function middleware(req: NextRequest, event: NextFetchEvent) {
   const ua = req.headers.get("user-agent") ?? "";
-  if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\\.com|cohere|ai2/i.test(ua)) {
+  if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|xai|duckassist|you\\.com|cohere|ai2/i.test(ua)) {
     // Build the URL from the public host header -- req.url reports the
     // internal bind address (e.g. 0.0.0.0:8080 / localhost) when self-hosted
     // (Cloud Run, Docker, etc.), which would break domain matching.

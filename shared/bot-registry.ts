@@ -113,11 +113,10 @@ const GENERIC_BOT_PATTERN = /bot|crawl|spider|scrape/i;
  * "Unknown bot" so it shows up in the dashboard and can be added to the
  * registry, instead of being silently dropped as human traffic.
  *
- * Deliberate differences from the middleware regex:
- * - "meta-" is hyphenated: bare "meta" appears in human UAs (Meta Quest
- *   browsers), and this pattern also classifies pixel traffic where every
- *   human browser UA flows through.
- * - "xai" is included for future xAI fetcher names beyond Grok.
+ * Deliberate difference from the middleware regex: "meta-" is hyphenated,
+ * because bare "meta" appears in human UAs (Meta Quest browsers) and this
+ * pattern also classifies pixel traffic where every human browser UA flows
+ * through.
  */
 const AI_TOKEN_PATTERN =
   /chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta-|facebook|mistral|deepseek|grok|xai|duckassist|you\.com|cohere|ai2/i;

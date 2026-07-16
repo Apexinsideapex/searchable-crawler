@@ -76,7 +76,7 @@ const INGEST_URL = "https://onecvommgdocankabufy.supabase.co/functions/v1/ingest
 
 export function middleware(req: NextRequest, event: NextFetchEvent) {
   const ua = req.headers.get("user-agent") ?? "";
-  if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|duckassist|you\.com|cohere|ai2/i.test(ua)) {
+  if (/bot|crawl|spider|scrape|chatgpt|gpt|claude|anthropic|perplexity|oai|google|gemini|meta|facebook|mistral|deepseek|grok|xai|duckassist|you\.com|cohere|ai2/i.test(ua)) {
     // req.url reports the internal bind address (e.g. 0.0.0.0:8080) when
     // self-hosted; derive the public host from the forwarded header instead.
     const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
