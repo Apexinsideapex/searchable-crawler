@@ -86,7 +86,13 @@ export const BOT_REGISTRY: BotDef[] = [
 
   { pattern: /DeepSeekBot/i, name: "DeepSeekBot", platform: "DeepSeek", category: "training" },
 
+  // xAI documents GrokBot (training), xAI-Grok (user-triggered fetch) and
+  // Grok-DeepSearch (agentic research). Note: Grok's retrieval traffic is
+  // widely reported to ALSO use spoofed browser UAs, which no UA-based
+  // classifier can attribute — these patterns only catch the honest ones.
   { pattern: /GrokBot/i, name: "GrokBot", platform: "xAI", category: "training" },
+  { pattern: /xAI-Grok/i, name: "xAI-Grok", platform: "xAI", category: "conversations" },
+  { pattern: /Grok-DeepSearch/i, name: "Grok-DeepSearch", platform: "xAI", category: "agent" },
 
   { pattern: /DuckAssistBot/i, name: "DuckAssistBot", platform: "DuckDuckGo", category: "indexing" },
 
